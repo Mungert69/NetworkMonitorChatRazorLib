@@ -4,6 +4,9 @@
     <TargetFramework>net9.0-android</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>NetworkMonitorChatRazorLib</AssemblyName>
+<RootNamespace>NetworkMonitorChat</RootNamespace>
+
   </PropertyGroup>
 
 
