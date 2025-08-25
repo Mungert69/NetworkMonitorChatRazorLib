@@ -1,0 +1,11 @@
+
+@using NetworkMonitorChat
+
+<div class="message @(Message.Success ? "success" : !string.IsNullOrEmpty(Message.Info) ? "info" : "error")">
+    @Message.Text
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public SystemMessage Message { get; set; } = new();
+}

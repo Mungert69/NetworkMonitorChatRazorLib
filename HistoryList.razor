@@ -1,0 +1,189 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Web
+@using NetworkMonitorChat
+
+<div class="filter-controls">
+    <select @bind="SelectedFilter" class="filter-select">
+        <option value="">All Models</option>
+        <option value="TurboLLM">TurboLLM</option>
+        <option value="HugLLM">HugLLM</option>
+    </select>
+</div>
+
+@if (FilteredHistories == null || !FilteredHistories.Any())
+{
+    <div class="no-history">No matching chat history found</div>
+}
+else
+{
+    <div class="history-container">
+        <!-- Current Session (if exists) -->
+        @if (CurrentSession != null)
+        {
+            <div class="current-session-section">
+                <h4 class="section-title">Current Session</h4>
+                <div class="history-item current">
+                    <div class="history-content">
+                        <div class="history-name">@CurrentSession.Name.Trim()</div>
+                        <div class="history-details">
+                            <span class="history-type">@CurrentSession.LLMType</span>
+                            <span class="history-time">
+                                @GetFormattedDateTime(CurrentSession.StartUnixTime)
+                            </span>
+                        </div>
+                    </div>
+                   
+                </div>
+            </div>
+        }
+
+        <!-- Previous Sessions -->
+        <div class="previous-sessions-section">
+            <h4 class="section-title">Previous Sessions</h4>
+            @foreach (var group in GroupedHistories)
+            {
+                <div class="history-group">
+                    <div class="group-date">@group.Key</div>
+                    @foreach (var history in group.Value)
+                    {
+                        <div class="history-item">
+                            <div class="history-content"  @onclick="() => HandleSelectSession(history)">
+                                <div class="history-name">@history.Name.Trim()</div>
+                                <div class="history-details">
+                                    <span class="history-type">@history.LLMType</span>
+                                    <span class="history-time">
+                                        @GetFormattedDateTime(history.StartUnixTime)
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="history-actions">
+                                <button class="action-button select-button" 
+                                        @onclick="() => HandleSelectSession(history)"
+                                        @onclick:preventDefault
+                                        title="Load this session">
+                                    <span class="button-text">Open</span>
+                                </button>
+                                <button class="action-button delete-button" 
+                                        @onclick="async () => await HandleDeleteSession(history)"
+                                        @onclick:preventDefault
+                                        title="Delete this session">
+                                    <span class="button-text">Delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+
+@code {
+    private string? _selectedFilter;
+    private List<ChatHistory>? _filteredHistories;
+    private Dictionary<string, List<ChatHistory>>? _groupedHistories;
+    private ChatHistory? _currentSession;
+
+    [Parameter]
+    public List<ChatHistory> Histories { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ChatHistory> OnSelectSession { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnDeleteSession { get; set; }
+
+    [Parameter]
+    public String CurrentSessionId { get; set; } = string.Empty;
+
+    [Parameter]
+    public String LLMType { get; set; } = string.Empty;
+
+    public string? SelectedFilter
+    {
+        get => _selectedFilter;
+        set
+        {
+            if (_selectedFilter != value)
+            {
+                _selectedFilter = value;
+                UpdateFilteredHistories();
+            }
+        }
+    }
+
+    public List<ChatHistory> FilteredHistories => _filteredHistories ?? Histories;
+    
+    public Dictionary<string, List<ChatHistory>> GroupedHistories => 
+        _groupedHistories ?? GroupHistoriesByDate(FilteredHistories.Where(h => h.SessionId != CurrentSessionId).ToList());
+    
+    public ChatHistory? CurrentSession => 
+        _currentSession ?? FilteredHistories.FirstOrDefault(h => h.SessionId == CurrentSessionId);
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        UpdateFilteredHistories();
+    }
+
+    private void UpdateFilteredHistories()
+    {
+        if (string.IsNullOrEmpty(SelectedFilter))
+        {
+            _filteredHistories = Histories;
+        }
+        else
+        {
+            _filteredHistories = Histories
+                .Where(h => h.LLMType == SelectedFilter)
+                .ToList();
+        }
+        
+        // Regroup histories whenever the filtered list changes
+        _groupedHistories = GroupHistoriesByDate(FilteredHistories.Where(h => h.SessionId != CurrentSessionId).ToList());
+        _currentSession = FilteredHistories.FirstOrDefault(h => h.SessionId == CurrentSessionId);
+    }
+
+    private Dictionary<string, List<ChatHistory>> GroupHistoriesByDate(List<ChatHistory> histories)
+    {
+        return histories
+            .GroupBy(h => DateTimeOffset.FromUnixTimeSeconds(h.StartUnixTime).ToString("d", CultureInfo.CurrentCulture))
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    private async Task HandleSelectSession(ChatHistory history)
+    {
+        await OnSelectSession.InvokeAsync( history);
+    }
+
+    private async Task HandleDeleteSession(ChatHistory history)
+    {
+        // Construct the full session ID like in React: sessionId_userId_llmType
+        var fullSessionId = $"{history.SessionId}_{history.UserId}_{history.LLMType}";
+
+        // Only notify parent - don't modify local state here
+        await OnDeleteSession.InvokeAsync(fullSessionId);
+
+        // Let the parent handle the state update through normal data flow
+    }
+
+    private string GetFormattedDateTime(long unixTime)
+    {
+        return DateTimeOffset.FromUnixTimeSeconds(unixTime)
+            .ToString("g", CultureInfo.CurrentCulture);
+    }
+
+    // Optional: Alternative method for relative time display
+    private string GetRelativeTime(long unixTime)
+    {
+        var time = DateTimeOffset.FromUnixTimeSeconds(unixTime);
+        var span = DateTimeOffset.Now - time;
+        
+        if (span.TotalDays >= 30) return $"{(int)(span.TotalDays / 30)} month(s) ago";
+        if (span.TotalDays >= 1) return $"{(int)span.TotalDays} day(s) ago";
+        if (span.TotalHours >= 1) return $"{(int)span.TotalHours} hour(s) ago";
+        if (span.TotalMinutes >= 1) return $"{(int)span.TotalMinutes} minute(s) ago";
+        return "just now";
+    }
+}
