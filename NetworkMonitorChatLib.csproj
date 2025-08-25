@@ -10,11 +10,15 @@
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
- <ItemGroup>
-                <ProjectReference Include="..\NetworkMonitorMaui\NetworkMonitorMaui-Android.csproj" />
-        </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.8" />
+                <ProjectReference Include="..\NetworkMonitorProcessor\NetworkMonitorProcessor-Maui-Android.csproj" />
+                <ProjectReference Include="..\NetworkMonitorLib\NetworkMonitor-Maui-Android.csproj" />
+        </ItemGroup>
+
+  <ItemGroup>
+                      <PackageReference Include="MatBlazor" Version="2.10.0" />
+
+	  <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.8" />
   </ItemGroup>
 
 </Project>
