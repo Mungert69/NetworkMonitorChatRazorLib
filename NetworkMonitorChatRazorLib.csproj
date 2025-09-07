@@ -17,6 +17,7 @@
                 <ProjectReference Include="..\NetworkMonitorMaui\NetworkMonitorMaui.csproj" />
         </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="8.6.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.8" />
       <PackageReference Include="MatBlazor" Version="2.10.0" />
   </ItemGroup>
