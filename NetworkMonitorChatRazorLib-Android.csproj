@@ -20,9 +20,9 @@
 
   <ItemGroup>
                       <PackageReference Include="MatBlazor" Version="2.10.0" />
-  <PackageReference Include="FluentAssertions" Version="8.6.0" />
+  <PackageReference Include="FluentAssertions" Version="8.7.1" />
                     
-	  <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.9" />
+	  <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.10" />
   </ItemGroup>
 
 </Project>
