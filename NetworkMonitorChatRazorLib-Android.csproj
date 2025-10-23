@@ -6,7 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>NetworkMonitorChatRazorLib</AssemblyName>
 <RootNamespace>NetworkMonitorChat</RootNamespace>
-
+  <AndroidSdkDirectory>/usr/lib/android-sdk</AndroidSdkDirectory>
+             
   </PropertyGroup>
 
 
