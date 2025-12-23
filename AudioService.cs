@@ -33,19 +33,37 @@ namespace NetworkMonitorChat
         };
         }
 
-        private async Task EnsureInitialized()
+        private async Task<bool> EnsureInitialized()
         {
             if (!_isInitialized)
             {
-                _jsModule = await _jsRuntime.InvokeAsync<IJSObjectReference>(
-                    "import", "./js/chatInterop.js");
-                _isInitialized = true;
+                try
+                {
+                    _jsModule = await _jsRuntime.InvokeAsync<IJSObjectReference>(
+                        "import", "./js/chatInterop.js");
+                    _isInitialized = true;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // JS interop is unavailable during prerendering.
+                    Console.Error.WriteLine($"AudioService JS init skipped: {ex.Message}");
+                    return false;
+                }
+                catch (JSException ex)
+                {
+                    Console.Error.WriteLine($"AudioService JS init failed: {ex.Message}");
+                    return false;
+                }
             }
+            return _isInitialized;
         }
 
         public async Task PlayAudioSequentially(string audioFile)
         {
-            await EnsureInitialized();
+            if (!await EnsureInitialized())
+            {
+                return;
+            }
 
             lock (_lock)
             {
@@ -117,7 +135,10 @@ namespace NetworkMonitorChat
 
         public async Task PauseAudio()
         {
-            await EnsureInitialized();
+            if (!await EnsureInitialized())
+            {
+                return;
+            }
             lock (_lock)
             {
                 _playbackCts?.Cancel();
@@ -127,18 +148,24 @@ namespace NetworkMonitorChat
 
         public async Task ClearQueue()
         {
-            await EnsureInitialized();
             lock (_lock)
             {
                 _audioQueue.Clear();
                 _playbackCts?.Cancel();
+            }
+            if (!await EnsureInitialized())
+            {
+                return;
             }
             await _jsRuntime.InvokeVoidAsync("chatInterop.pauseAudio");
         }
 
         public async Task<bool> StartRecording(string recordingSessionId)
         {
-            await EnsureInitialized();
+            if (!await EnsureInitialized())
+            {
+                return false;
+            }
             return await _jsRuntime.InvokeAsync<bool>(
                 "chatInterop.startRecording", new object[] { recordingSessionId });
         }
@@ -147,6 +174,10 @@ namespace NetworkMonitorChat
 {
     try
     {
+        if (!await EnsureInitialized())
+        {
+            return Array.Empty<byte>();
+        }
         // Invoke the JS function and get a stream reference instead of a large string
         var jsStreamRef = await _jsRuntime.InvokeAsync<IJSStreamReference>(
             "chatInterop.stopRecording", recordingSessionId);
@@ -243,7 +274,11 @@ public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
         {
             try
             {
-                await ClearQueue();
+                lock (_lock)
+                {
+                    _audioQueue.Clear();
+                    _playbackCts?.Cancel();
+                }
                 if (_jsModule is not null)
                 {
                     await _jsModule.DisposeAsync();
