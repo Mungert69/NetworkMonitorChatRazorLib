@@ -89,6 +89,7 @@ namespace NetworkMonitorChat
         public bool AutoClickedRef { get; set; } = false;
 
         private readonly IJSRuntime _jsRuntime;
+        private bool _jsInteropUnavailable;
 
         public ChatStateService(IJSRuntime jsRuntime)
         {
@@ -103,7 +104,7 @@ namespace NetworkMonitorChat
         }
         public async Task ClearSession()
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "sessionId");
+            await TryInvokeVoidAsync("localStorage.removeItem", "sessionId");
             await GetSessionId();
         }
 
@@ -111,13 +112,13 @@ namespace NetworkMonitorChat
         public async Task StoreNewSessionID(string newSessionId)
         {
             SessionId = newSessionId;
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "sessionId", newSessionId);
+            await TryInvokeVoidAsync("localStorage.setItem", "sessionId", newSessionId);
         }
 
         private async Task GetSessionId()
         {
-            // Check if we have a session in localStorage
-            var storedSessionId = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "sessionId");
+            // Check if we have a session in localStorage (may be unavailable during prerender).
+            var storedSessionId = await TryInvokeAsync<string>("localStorage.getItem", "sessionId");
 
             if (!string.IsNullOrEmpty(storedSessionId))
             {
@@ -146,6 +147,52 @@ namespace NetworkMonitorChat
                 {
                     Console.WriteLine($"Error in state notification: {ex}");
                 }
+            }
+        }
+
+        private async Task TryInvokeVoidAsync(string identifier, params object[] args)
+        {
+            if (_jsInteropUnavailable)
+            {
+                return;
+            }
+
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync(identifier, args);
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available during prerender.
+                _jsInteropUnavailable = true;
+            }
+            catch (JSDisconnectedException)
+            {
+                _jsInteropUnavailable = true;
+            }
+        }
+
+        private async Task<T?> TryInvokeAsync<T>(string identifier, params object[] args)
+        {
+            if (_jsInteropUnavailable)
+            {
+                return default;
+            }
+
+            try
+            {
+                return await _jsRuntime.InvokeAsync<T>(identifier, args);
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available during prerender.
+                _jsInteropUnavailable = true;
+                return default;
+            }
+            catch (JSDisconnectedException)
+            {
+                _jsInteropUnavailable = true;
+                return default;
             }
         }
         // Add to your ChatStateService class
