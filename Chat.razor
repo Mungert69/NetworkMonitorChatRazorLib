@@ -195,6 +195,7 @@
 
                 <div class="input-buttons">
                     <button 
+                    type="button"
                     @onclick="SendMessage" 
                     disabled="@(ChatState.IsLLMBusy || !ChatState.IsReady)"
                     aria-label="Send message">
@@ -203,6 +204,7 @@
                     </button>
 
                     <button 
+                    type="button"
                     @onclick="ToggleRecording" 
                     disabled="@ChatState.IsProcessing"
                     aria-label="@(IsRecording ? "Stop recording" : "Start recording")">
@@ -220,6 +222,7 @@
                     </button>
 
                     <button 
+                    type="button"
                     @onclick="StopLLM" 
                     disabled="@(!ChatState.IsLLMBusy || !ChatState.IsReady)" 
                     class="warning-button"
@@ -511,17 +514,20 @@ private async Task DismissNotification(string id)
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(ChatState.CurrentMessage)) return;
+        var message = ChatState.CurrentMessage;
+        if (string.IsNullOrWhiteSpace(message)) return;
         
         await AudioService.ClearQueue();
         ChatState.IsProcessing = true;
-        await WebSocketService.SendMessage(ChatState.CurrentMessage);
+        await HandleStateChange();
+        await WebSocketService.SendMessage(message);
         ChatState.CurrentMessage = "";
+        await HandleStateChange();
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !e.ShiftKey)
+        if ((e.Key == "Enter" || e.Key == "NumpadEnter") && !e.ShiftKey)
         {
             await SendMessage();
         }
