@@ -19,7 +19,9 @@ namespace NetworkMonitorChat
         private CancellationTokenSource? _playbackCts;
         private readonly object _lock = new object();
         private string _apiUrl;
-          private readonly HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
+        private string? _lastRecordingMimeType;
+        private string? _lastRecordingExtension;
 
 
         public AudioService(IJSRuntime jsRuntime, NetConnectConfig netConfig)
@@ -40,7 +42,7 @@ namespace NetworkMonitorChat
                 try
                 {
                     _jsModule = await _jsRuntime.InvokeAsync<IJSObjectReference>(
-                        "import", "./js/chatInterop.js");
+                        "import", "./_content/NetworkMonitorChatRazorLib/js/chatInterop.js");
                     _isInitialized = true;
                 }
                 catch (InvalidOperationException ex)
@@ -166,6 +168,8 @@ namespace NetworkMonitorChat
             {
                 return false;
             }
+            _lastRecordingMimeType = null;
+            _lastRecordingExtension = null;
             return await _jsRuntime.InvokeAsync<bool>(
                 "chatInterop.startRecording", new object[] { recordingSessionId });
         }
@@ -192,8 +196,16 @@ namespace NetworkMonitorChat
         await using var dataStream = await jsStreamRef.OpenReadStreamAsync(maxAllowedSize: 50_000_000);
         using var ms = new MemoryStream();
         await dataStream.CopyToAsync(ms);
-       var result=ms.ToArray();
+        var result = ms.ToArray();
         Console.Error.WriteLine($"Got array of data length {result.Length}");
+
+        var recordingInfo = await _jsRuntime.InvokeAsync<RecordingInfo?>(
+            "chatInterop.getLastRecordingInfo");
+        if (recordingInfo != null)
+        {
+            _lastRecordingMimeType = recordingInfo.MimeType;
+            _lastRecordingExtension = recordingInfo.Extension;
+        }
        
         return result;
     }
@@ -224,8 +236,14 @@ public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
     using var content = new MultipartFormDataContent();
     using var audioContent = new ByteArrayContent(webmAudio);
 
-    audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/webm");
-    content.Add(audioContent, "file", "recording.webm");
+    var mimeType = string.IsNullOrWhiteSpace(_lastRecordingMimeType)
+        ? "audio/webm"
+        : _lastRecordingMimeType;
+    var extension = string.IsNullOrWhiteSpace(_lastRecordingExtension)
+        ? "webm"
+        : _lastRecordingExtension;
+    audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse(mimeType);
+    content.Add(audioContent, "file", $"recording.{extension}");
 
     try
     {
@@ -268,7 +286,7 @@ public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
         Console.Error.WriteLine($"TranscribeAudio error: {ex}");
     }
 
-    return result;
+        return result;
 }
         public async ValueTask DisposeAsync()
         {
@@ -305,6 +323,12 @@ public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
             {
                 _tcs.TrySetResult(true);
             }
+        }
+
+        private sealed class RecordingInfo
+        {
+            public string? MimeType { get; set; }
+            public string? Extension { get; set; }
         }
     }
 }
