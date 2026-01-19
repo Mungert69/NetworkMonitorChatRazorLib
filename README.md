@@ -16,5 +16,15 @@ Reference the library from a Blazor or MAUI project and register the services in
 The components expect a running LLM backend (see `NetworkMonitorLLM`) and the
 monitor service for function-call execution.
 
+## History display names
+By default, the LLM backend only sends history display payloads from the user-facing service (defaults to `monitor`).
+If you need histories from another service, send:
+
+```
+<|GET_HISTORY_DISPLAY|>cmdprocessor
+```
+
+If no service ID is provided, the backend uses its `UserFacingServiceId` setting.
+
 ## Tests
 `Tests/` contains component and service-level tests for chat state and WebSocket logic.
