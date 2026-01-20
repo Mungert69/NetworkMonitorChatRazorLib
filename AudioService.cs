@@ -19,7 +19,7 @@ namespace NetworkMonitorChat
         private CancellationTokenSource? _playbackCts;
         private readonly object _lock = new object();
         private string _apiUrl;
-        private readonly HttpClient _httpClient;
+          private readonly HttpClient _httpClient;
 
 
         public AudioService(IJSRuntime jsRuntime, NetConnectConfig netConfig)
@@ -192,7 +192,7 @@ namespace NetworkMonitorChat
         await using var dataStream = await jsStreamRef.OpenReadStreamAsync(maxAllowedSize: 50_000_000);
         using var ms = new MemoryStream();
         await dataStream.CopyToAsync(ms);
-        var result=ms.ToArray();
+       var result=ms.ToArray();
         Console.Error.WriteLine($"Got array of data length {result.Length}");
        
         return result;
@@ -268,7 +268,7 @@ public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
         Console.Error.WriteLine($"TranscribeAudio error: {ex}");
     }
 
-        return result;
+    return result;
 }
         public async ValueTask DisposeAsync()
         {
@@ -306,6 +306,5 @@ public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
                 _tcs.TrySetResult(true);
             }
         }
-
     }
 }
