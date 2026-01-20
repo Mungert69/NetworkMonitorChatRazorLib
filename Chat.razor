@@ -203,26 +203,23 @@
                         <span class="tooltip">Send</span>
                     </button>
 
-                    @if (IsRecordingSupported)
-                    {
-                        <button 
-                        type="button"
-                        @onclick="ToggleRecording" 
-                        disabled="@ChatState.IsProcessing"
-                        aria-label="@(IsRecording ? "Stop recording" : "Start recording")">
-                            @if (IsRecording)
-                            {
-                                <i class="material-icons">mic_off</i>
-                                <span class="tooltip">Stop Recording</span>
-                                <div class="recording-indicator" title="Recording..."></div>
-                            }
-                            else
-                            {
-                                <i class="material-icons">mic</i>
-                                <span class="tooltip">Start Recording</span>
-                            }
-                        </button>
-                    }
+                    <button 
+                    type="button"
+                    @onclick="ToggleRecording" 
+                    disabled="@ChatState.IsProcessing"
+                    aria-label="@(IsRecording ? "Stop recording" : "Start recording")">
+                        @if (IsRecording)
+                        {
+                            <i class="material-icons">mic_off</i>
+                            <span class="tooltip">Stop Recording</span>
+                            <div class="recording-indicator" title="Recording..."></div>
+                        }
+                        else
+                        {
+                            <i class="material-icons">mic</i>
+                            <span class="tooltip">Start Recording</span>
+                        }
+                    </button>
 
                     <button 
                     type="button"
@@ -251,12 +248,6 @@
     private bool IsHistoryOpen = false;
     private bool IsRecording = false;
     private string recordingSessionId = Guid.NewGuid().ToString();
-    private static readonly bool IsRecordingSupported =
-#if ANDROID
-        false;
-#else
-        true;
-#endif
 
       private record MessageBlock(string Type, string Content, string HtmlContent, int ContentHash);
     private List<MessageBlock> _cachedBlocks = new();
@@ -406,10 +397,6 @@ private async Task DismissNotification(string id)
     }
     private async Task ToggleRecording()
     {
-        if (!IsRecordingSupported)
-        {
-            return;
-        }
         if (IsRecording)
         {
             await HandleStopRecording();
