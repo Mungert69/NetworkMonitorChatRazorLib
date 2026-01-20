@@ -4,10 +4,12 @@
     <TargetFramework>net10.0-android</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AndroidSdkDirectory>/usr/lib/android-sdk</AndroidSdkDirectory>
     <AssemblyName>NetworkMonitorChatRazorLib</AssemblyName>
-<RootNamespace>NetworkMonitorChat</RootNamespace>
-  <AndroidSdkDirectory>/usr/lib/android-sdk</AndroidSdkDirectory>
-             
+    <RootNamespace>NetworkMonitorChat</RootNamespace>
+    <CopyRazorGenerateFilesToPublishDirectory>true</CopyRazorGenerateFilesToPublishDirectory>
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+    <RazorCompileOnPublish>true</RazorCompileOnPublish>   
   </PropertyGroup>
 
 
