@@ -93,6 +93,11 @@ namespace NetworkMonitorChat
                 var deviceSummary = DeviceContextHelper.BuildLlmDeviceContextSummary(_netConfig.DeviceContext, chatAgentLocation);
                 var encodedDeviceSummary = DeviceContextHelper.EncodeHandshakeValue(deviceSummary);
                 var sendStr = $"{timeZone},{_chatState.LLMRunnerType},{_chatState.SessionId},{chatAgentLocation},{encodedDeviceSummary}";
+                Console.WriteLine(
+                    "WS init payload lengths: location={0}, deviceSummary={1}, encodedDeviceSummary={2}",
+                    chatAgentLocation?.Length ?? 0,
+                    deviceSummary?.Length ?? 0,
+                    encodedDeviceSummary?.Length ?? 0);
                 await _webSocket.SendAsync(
                     new ArraySegment<byte>(Encoding.UTF8.GetBytes(sendStr)),
                     WebSocketMessageType.Text,
