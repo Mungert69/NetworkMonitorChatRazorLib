@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
+using NetworkMonitor.Utils.Helpers;
 
 namespace NetworkMonitorChat
 {
@@ -88,7 +89,10 @@ namespace NetworkMonitorChat
 
                 // Send initialization IMMEDIATELY after connection
                 var timeZone = TimeZoneInfo.Local.Id;
-                var sendStr = $"{timeZone},{_chatState.LLMRunnerType},{_chatState.SessionId},{_netConfig.MonitorLocation}";
+                var chatAgentLocation = DeviceContextHelper.BuildMonitorLocation(_netConfig.DeviceContext, _netConfig.MonitorLocation);
+                var deviceSummary = DeviceContextHelper.BuildLlmDeviceContextSummary(_netConfig.DeviceContext, chatAgentLocation);
+                var encodedDeviceSummary = DeviceContextHelper.EncodeHandshakeValue(deviceSummary);
+                var sendStr = $"{timeZone},{_chatState.LLMRunnerType},{_chatState.SessionId},{chatAgentLocation},{encodedDeviceSummary}";
                 await _webSocket.SendAsync(
                     new ArraySegment<byte>(Encoding.UTF8.GetBytes(sendStr)),
                     WebSocketMessageType.Text,
