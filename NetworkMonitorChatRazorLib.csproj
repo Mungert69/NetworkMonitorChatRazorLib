@@ -14,8 +14,8 @@
     <SupportedPlatform Include="browser" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="8.8.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.3" />
+    <PackageReference Include="FluentAssertions" Version="8.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.5" />
       
       <PackageReference Include="MatBlazor" Version="2.10.0" />
   </ItemGroup>
