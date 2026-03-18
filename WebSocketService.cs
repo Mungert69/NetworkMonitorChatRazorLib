@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using NetworkMonitor.Connection;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
@@ -169,13 +170,31 @@ namespace NetworkMonitorChat
         }
         private async Task ReceiveMessages()
         {
-            var buffer = new byte[65535];
+            var buffer = new byte[8192];
             while (!_cancellationTokenSource.Token.IsCancellationRequested )
             {
                 try
                 {
-                    var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationTokenSource.Token);
-                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    using var messageStream = new MemoryStream();
+                    WebSocketReceiveResult result;
+
+                    do
+                    {
+                        result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationTokenSource.Token);
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            return;
+                        }
+                        messageStream.Write(buffer, 0, result.Count);
+                    }
+                    while (!result.EndOfMessage);
+
+                    if (result.MessageType != WebSocketMessageType.Text)
+                    {
+                        continue;
+                    }
+
+                    var message = Encoding.UTF8.GetString(messageStream.ToArray());
                     await ProcessMessage(message);
                 }
                 catch (Exception ex)
