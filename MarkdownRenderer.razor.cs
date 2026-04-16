@@ -9,7 +9,7 @@ namespace NetworkMonitorChat
     public partial class MarkdownRenderer
     {
         [Parameter]
-        public string Content { get; set; }
+        public string Content { get; set; } = string.Empty;
 
         // --- Inline regexes (compiled) ---
         private static readonly Regex ImageRegex = new(@"\!\[(.*?)\]\((.*?)\)", RegexOptions.Compiled);
@@ -31,7 +31,7 @@ namespace NetworkMonitorChat
         private static readonly Regex InlineCodeRegex = new(@"(`+)(.*?)\1", RegexOptions.Compiled);
         private static readonly Regex EscapeRegex = new(@"\\([\\`*_{}\[\]()#+\-.!])", RegexOptions.Compiled);
 
-        public static string ToHtml(string markdown)
+        public static string ToHtml(string? markdown)
         {
             if (string.IsNullOrEmpty(markdown))
                 return string.Empty;

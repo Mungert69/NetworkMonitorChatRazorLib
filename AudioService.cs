@@ -109,7 +109,7 @@ namespace NetworkMonitorChat
                             nextAudio,
                             dotnetRef);
 
-                        await tcs.Task.WaitAsync(_playbackCts.Token);
+                        await tcs.Task.WaitAsync(_playbackCts?.Token ?? CancellationToken.None);
                     }
                     catch (TaskCanceledException)
                     {

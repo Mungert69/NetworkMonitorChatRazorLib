@@ -34,7 +34,7 @@ namespace NetworkMonitorChat
         public string CurrentMessage { get; set; } = "";
         public bool IsDashboard { get; set; }
         private string _lLMRunnerType = "TurboLLM";
-        private string _sessionId;
+        private string _sessionId = string.Empty;
 
         public string SessionId
         {
@@ -85,7 +85,7 @@ namespace NetworkMonitorChat
         public bool IsInputFocused { get; set; } = false;
 
         // Session management
-        public string OpenMessage { get; set; }
+        public string OpenMessage { get; set; } = string.Empty;
         public bool AutoClickedRef { get; set; } = false;
 
         private readonly IJSRuntime _jsRuntime;
@@ -211,7 +211,7 @@ namespace NetworkMonitorChat
                 {
                     AddNotification(value);
                 }
-                NotifyStateChanged();
+                _ = NotifyStateChanged();
             }
         }
 

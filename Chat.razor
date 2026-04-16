@@ -241,7 +241,7 @@
 
 @code {
     private string _cacheString="";
-    private System.Timers.Timer _renderTimer;
+    private System.Timers.Timer? _renderTimer;
     private bool _needsRender;
     private ElementReference outputContainerRef;
     private ElementReference historyButtonRef;
@@ -417,7 +417,7 @@ private async Task DismissNotification(string id)
 
             var result = await AudioService.TranscribeAudio(audioBlob);
 
-            if (result.Success)
+            if (result.Success && !string.IsNullOrWhiteSpace(result.Data))
             {
                 await SendTranscription(result.Data);
             }
@@ -607,7 +607,7 @@ private List<(string Type, string Content)> ParseMessageBlocks(string content)
         // Find next marker
         int nextMarkerPos = content.Length;
         string nextMarkerType = "text";
-        string nextMarkerText = null;
+        string? nextMarkerText = null;
 
         foreach (var (marker, type) in markers)
         {

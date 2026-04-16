@@ -180,7 +180,12 @@ namespace NetworkMonitorChat
 
                     do
                     {
-                        result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationTokenSource.Token);
+                        var ws = _webSocket;
+                        if (ws == null)
+                        {
+                            return;
+                        }
+                        result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationTokenSource.Token);
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
                             return;
@@ -292,7 +297,7 @@ namespace NetworkMonitorChat
             if (_isConnectionReady && !string.IsNullOrEmpty(QueuedReplayMessage))
             {
                 await Send(QueuedReplayMessage);
-                QueuedReplayMessage = null;
+                QueuedReplayMessage = string.Empty;
             }
         }
         private void ProcessControlMessage(string message)
@@ -581,8 +586,14 @@ namespace NetworkMonitorChat
                     await Reconnect();
                 }
 
+                var ws = _webSocket;
+                if (ws == null || ws.State != WebSocketState.Open)
+                {
+                    throw new InvalidOperationException("WebSocket is not connected.");
+                }
+
                 var buffer = Encoding.UTF8.GetBytes(message);
-                await _webSocket?.SendAsync(
+                await ws.SendAsync(
                     new ArraySegment<byte>(buffer),
                     WebSocketMessageType.Text,
                     true,
