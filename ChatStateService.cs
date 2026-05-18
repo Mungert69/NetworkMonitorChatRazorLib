@@ -9,6 +9,8 @@ namespace NetworkMonitorChat
 {
     public class ChatStateService
     {
+        private const string LLMRunnerTypeStorageKey = "llmRunnerType";
+
         // Audio and UI state
         public bool IsMuted { get; set; } = true;
         public bool IsExpanded { get; set; } = true;
@@ -73,7 +75,13 @@ namespace NetworkMonitorChat
             get => _lLMRunnerType;
             set
             {
+                if (_lLMRunnerType == value)
+                {
+                    return;
+                }
+
                 _lLMRunnerType = value;
+                _ = TryInvokeVoidAsync("localStorage.setItem", LLMRunnerTypeStorageKey, value);
                 _ = NotifyStateChanged();
             }
         }
@@ -99,7 +107,8 @@ namespace NetworkMonitorChat
 
         public async Task Initialize()
         {
-            LLMRunnerType = InitRunnerType;
+            var storedRunnerType = await TryInvokeAsync<string>("localStorage.getItem", LLMRunnerTypeStorageKey);
+            LLMRunnerType = string.IsNullOrWhiteSpace(storedRunnerType) ? InitRunnerType : storedRunnerType;
             await GetSessionId();
         }
         public async Task ClearSession()
