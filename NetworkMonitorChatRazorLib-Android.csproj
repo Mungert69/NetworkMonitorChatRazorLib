@@ -22,6 +22,13 @@
         </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Tests/**" />
+    <Content Remove="Tests/**" />
+    <None Remove="Tests/**" />
+    <MauiAsset Remove="Tests/**" />
+  </ItemGroup>
+
+  <ItemGroup>
                       <PackageReference Include="MatBlazor" Version="2.10.0" />
   <PackageReference Include="FluentAssertions" Version="8.10.0">
     <PrivateAssets>all</PrivateAssets>
