@@ -47,7 +47,7 @@ namespace NetworkMonitorChat
                 _ = NotifyStateChanged();
             }
         }
-        
+
 
         // In ChatStateService.cs
         public string LLMFeedback
@@ -132,7 +132,7 @@ namespace NetworkMonitorChat
             if (!string.IsNullOrEmpty(storedSessionId))
             {
                 SessionId = storedSessionId;
-                return ;
+                return;
             }
 
             // Create new session
@@ -205,7 +205,7 @@ namespace NetworkMonitorChat
             }
         }
         // Add to your ChatStateService class
-       
+
 
         public List<Notification> Notifications { get; } = new List<Notification>();
 

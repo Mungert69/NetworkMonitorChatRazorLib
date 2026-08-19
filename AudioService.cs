@@ -1,7 +1,7 @@
 using Microsoft.JSInterop;
 using System;
 using System.Net.Http;
-using System.Net.Http.Headers; 
+using System.Net.Http.Headers;
 using NetworkMonitor.Connection;
 using NetworkMonitor.Objects;
 using System.IO;
@@ -19,18 +19,18 @@ namespace NetworkMonitorChat
         private CancellationTokenSource? _playbackCts;
         private readonly object _lock = new object();
         private string _apiUrl;
-          private readonly HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
 
 
         public AudioService(IJSRuntime jsRuntime, NetConnectConfig netConfig)
         {
             _jsRuntime = jsRuntime;
-            _apiUrl= netConfig.TranscribeAudioUrl;
+            _apiUrl = netConfig.TranscribeAudioUrl;
             Console.WriteLine($"Using transcribe url: {_apiUrl}");
-             _httpClient = new HttpClient()
-        {
-            Timeout = TimeSpan.FromSeconds(30) // Set appropriate timeout
-        };
+            _httpClient = new HttpClient()
+            {
+                Timeout = TimeSpan.FromSeconds(30) // Set appropriate timeout
+            };
         }
 
         private async Task<bool> EnsureInitialized()
@@ -170,106 +170,106 @@ namespace NetworkMonitorChat
                 "chatInterop.startRecording", new object[] { recordingSessionId });
         }
 
-   public async Task<byte[]> StopRecording(string recordingSessionId)
-{
-    try
-    {
-        if (!await EnsureInitialized())
+        public async Task<byte[]> StopRecording(string recordingSessionId)
         {
-            return Array.Empty<byte>();
-        }
-        // Invoke the JS function and get a stream reference instead of a large string
-        var jsStreamRef = await _jsRuntime.InvokeAsync<IJSStreamReference>(
-            "chatInterop.stopRecording", recordingSessionId);
+            try
+            {
+                if (!await EnsureInitialized())
+                {
+                    return Array.Empty<byte>();
+                }
+                // Invoke the JS function and get a stream reference instead of a large string
+                var jsStreamRef = await _jsRuntime.InvokeAsync<IJSStreamReference>(
+                    "chatInterop.stopRecording", recordingSessionId);
 
-        if (jsStreamRef == null)
+                if (jsStreamRef == null)
+                {
+                    // No stream returned (maybe recording never started or was already stopped)
+                    return Array.Empty<byte>();
+                }
+
+                // Read the stream into a MemoryStream (set maxAllowedSize as needed, e.g. 50MB)
+                await using var dataStream = await jsStreamRef.OpenReadStreamAsync(maxAllowedSize: 50_000_000);
+                using var ms = new MemoryStream();
+                await dataStream.CopyToAsync(ms);
+                var result = ms.ToArray();
+                Console.Error.WriteLine($"Got array of data length {result.Length}");
+
+                return result;
+            }
+            catch (JSException jsEx)
+            {
+                // Handle JavaScript errors (e.g. function not found or JS execution error)
+                Console.Error.WriteLine($"JSInterop error in StopRecording: {jsEx.Message}");
+                return Array.Empty<byte>();
+            }
+            catch (OperationCanceledException cancelEx)
+            {
+                // Handle timeout or cancellation if any token was used
+                Console.Error.WriteLine($"StopRecording was canceled: {cancelEx.Message}");
+                return Array.Empty<byte>();
+            }
+            catch (Exception ex)
+            {
+                // Catch all other errors
+                Console.Error.WriteLine($"Unexpected error stopping recording: {ex}");
+                return Array.Empty<byte>();
+            }
+        }
+
+
+        public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
         {
-            // No stream returned (maybe recording never started or was already stopped)
-            return Array.Empty<byte>();
+            var result = new TResultObj<string>();
+            using var content = new MultipartFormDataContent();
+            using var audioContent = new ByteArrayContent(webmAudio);
+
+            audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/webm");
+            content.Add(audioContent, "file", "recording.webm");
+
+            try
+            {
+                var response = await _httpClient.PostAsync(_apiUrl, content);
+
+                var responseString = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Transcribe API Response: {responseString}");
+
+                using var doc = JsonDocument.Parse(responseString);
+                var root = doc.RootElement;
+
+                var status = root.GetProperty("status").GetString();
+
+                if (status?.Equals("success", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    var transcription = root.GetProperty("transcription").GetString();
+                    result.Success = true;
+                    result.Message = "Transcription successful.";
+                    result.Data = transcription;
+                }
+                else if (status?.Equals("error", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    var errorMessage = root.GetProperty("message").GetString();
+                    result.Success = false;
+                    result.Message = $"Transcription failed: {errorMessage}";
+                    result.Data = null;
+                }
+                else
+                {
+                    result.Success = false;
+                    result.Message = "Unexpected response format.";
+                    result.Data = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Exception during transcription: {ex.Message}";
+                result.Data = null;
+                Console.Error.WriteLine($"TranscribeAudio error: {ex}");
+            }
+
+            return result;
         }
-
-        // Read the stream into a MemoryStream (set maxAllowedSize as needed, e.g. 50MB)
-        await using var dataStream = await jsStreamRef.OpenReadStreamAsync(maxAllowedSize: 50_000_000);
-        using var ms = new MemoryStream();
-        await dataStream.CopyToAsync(ms);
-       var result=ms.ToArray();
-        Console.Error.WriteLine($"Got array of data length {result.Length}");
-       
-        return result;
-    }
-    catch (JSException jsEx)
-    {
-        // Handle JavaScript errors (e.g. function not found or JS execution error)
-        Console.Error.WriteLine($"JSInterop error in StopRecording: {jsEx.Message}");
-        return Array.Empty<byte>();
-    }
-    catch (OperationCanceledException cancelEx)
-    {
-        // Handle timeout or cancellation if any token was used
-        Console.Error.WriteLine($"StopRecording was canceled: {cancelEx.Message}");
-        return Array.Empty<byte>();
-    }
-    catch (Exception ex)
-    {
-        // Catch all other errors
-        Console.Error.WriteLine($"Unexpected error stopping recording: {ex}");
-        return Array.Empty<byte>();
-    }
-}
-
-
-public async Task<TResultObj<string>> TranscribeAudio(byte[] webmAudio)
-{
-    var result = new TResultObj<string>();
-    using var content = new MultipartFormDataContent();
-    using var audioContent = new ByteArrayContent(webmAudio);
-
-    audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/webm");
-    content.Add(audioContent, "file", "recording.webm");
-
-    try
-    {
-        var response = await _httpClient.PostAsync(_apiUrl, content);
-
-        var responseString = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Transcribe API Response: {responseString}");
-
-        using var doc = JsonDocument.Parse(responseString);
-        var root = doc.RootElement;
-
-        var status = root.GetProperty("status").GetString();
-
-        if (status?.Equals("success", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            var transcription = root.GetProperty("transcription").GetString();
-            result.Success = true;
-            result.Message = "Transcription successful.";
-            result.Data = transcription;
-        }
-        else if (status?.Equals("error", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            var errorMessage = root.GetProperty("message").GetString();
-            result.Success = false;
-            result.Message = $"Transcription failed: {errorMessage}";
-            result.Data = null;
-        }
-        else
-        {
-            result.Success = false;
-            result.Message = "Unexpected response format.";
-            result.Data = null;
-        }
-    }
-    catch (Exception ex)
-    {
-        result.Success = false;
-        result.Message = $"Exception during transcription: {ex.Message}";
-        result.Data = null;
-        Console.Error.WriteLine($"TranscribeAudio error: {ex}");
-    }
-
-    return result;
-}
         public async ValueTask DisposeAsync()
         {
             try
