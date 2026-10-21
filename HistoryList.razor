@@ -42,11 +42,11 @@ else
             <h4 class="section-title">Previous Sessions</h4>
             @foreach (var group in GroupedHistories)
             {
-                <div class="history-group">
+                <div class="history-group" @key="group.Key">
                     <div class="group-date">@group.Key</div>
                     @foreach (var history in group.Value)
                     {
-                        <div class="history-item">
+                        <div class="history-item" @key="(history.SessionId, history.UserId, history.LLMType)">
                             <div class="history-content"  @onclick="() => HandleSelectSession(history)">
                                 <div class="history-name">@history.Name.Trim()</div>
                                 <div class="history-details">
@@ -82,7 +82,7 @@ else
 @code {
     private string? _selectedFilter;
     private List<ChatHistory>? _filteredHistories;
-    private Dictionary<string, List<ChatHistory>>? _groupedHistories;
+    private List<KeyValuePair<string, List<ChatHistory>>>? _groupedHistories;
     private ChatHistory? _currentSession;
 
     [Parameter]
@@ -115,7 +115,7 @@ else
 
     public List<ChatHistory> FilteredHistories => _filteredHistories ?? Histories;
     
-    public Dictionary<string, List<ChatHistory>> GroupedHistories => 
+    public List<KeyValuePair<string, List<ChatHistory>>> GroupedHistories =>
         _groupedHistories ?? GroupHistoriesByDate(FilteredHistories.Where(h => h.SessionId != CurrentSessionId).ToList());
     
     public ChatHistory? CurrentSession => 
@@ -145,11 +145,19 @@ else
         _currentSession = FilteredHistories.FirstOrDefault(h => h.SessionId == CurrentSessionId);
     }
 
-    private Dictionary<string, List<ChatHistory>> GroupHistoriesByDate(List<ChatHistory> histories)
+    private List<KeyValuePair<string, List<ChatHistory>>> GroupHistoriesByDate(List<ChatHistory> histories)
     {
+        // Incoming storage order can change after deletion. Sort by the actual timestamp,
+        // with stable identity tie-breakers for sessions created in the same second.
         return histories
-            .GroupBy(h => DateTimeOffset.FromUnixTimeSeconds(h.StartUnixTime).ToString("d", CultureInfo.CurrentCulture))
-            .ToDictionary(g => g.Key, g => g.ToList());
+            .OrderByDescending(h => h.StartUnixTime)
+            .ThenBy(h => h.SessionId, StringComparer.Ordinal)
+            .ThenBy(h => h.LLMType, StringComparer.Ordinal)
+            .ThenBy(h => h.UserId, StringComparer.Ordinal)
+            .GroupBy(h => DateTimeOffset.FromUnixTimeSeconds(h.StartUnixTime).Date)
+            .Select(g => new KeyValuePair<string, List<ChatHistory>>(
+                g.Key.ToString("d", CultureInfo.CurrentCulture), g.ToList()))
+            .ToList();
     }
 
     private async Task HandleSelectSession(ChatHistory history)
