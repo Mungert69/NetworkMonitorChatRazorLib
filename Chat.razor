@@ -80,13 +80,12 @@
                         }
                     </button>*@
 
-                    <select @bind="ChatState.NewConversationRole" aria-label="New chat role" title="Role for your next new chat">
-                        <option value="">New chat: configured default</option>
-                        <option value="hal9000">New chat: HAL 9000</option>
-                        <option value="hal9000simple">New chat: HAL 9000 simple</option>
-                        <option value="standard">New chat: standard</option>
-                        <option value="simple">New chat: simple</option>
-                    </select>
+                    <button @onclick="ToggleHal" disabled="@(ChatState.IsToggleDisabled || !ChatState.IsReady)"
+                            aria-label="Toggle HAL mode" aria-pressed="@(ChatState.HalEnabled ? "true" : "false")"
+                            title="Switch HAL mode and start a new chat">
+                        <span>HAL @(ChatState.HalEnabled ? "On" : "Off")</span>
+                        <span class="tooltip">Switch HAL mode and start a new chat</span>
+                    </button>
 
                     <button @onclick="ResetChat" class="warning-button" aria-label="Start new chat">
                         <i class="material-icons">refresh</i>
@@ -343,6 +342,24 @@ private async Task DismissNotification(string id)
         return "position: fixed; bottom: 20px; right: 20px; width: 380px; height: calc(100% - 90px); max-height: 80vh;";
     }
 
+    private async Task ToggleHal()
+    {
+        if (ChatState.IsToggleDisabled || !ChatState.IsReady) return;
+        ChatState.IsToggleDisabled = true;
+        try
+        {
+            await AudioService.ClearQueue();
+            await WebSocketService.SendMessage("<|REMOVE_SESSION|>");
+            ChatState.HalEnabled = !ChatState.HalEnabled;
+            WebSocketService.QueuedReplayMessage = string.Empty;
+            await WebSocketService.ResetLLM(true);
+        }
+        finally
+        {
+            ChatState.IsToggleDisabled = false;
+        }
+    }
+
     private async Task ResetChat()
     {
         await WebSocketService.SendMessage("<|REMOVE_SESSION|>");
@@ -509,8 +526,12 @@ private async Task DismissNotification(string id)
     var nextIndex = (currentIndex + 1) % types.Count;
 
     ChatState.LLMRunnerType = types[nextIndex];
-    WebSocketService.QueuedReplayMessage = "<|REPLAY_HISTORY|>";
-    await WebSocketService.ResetLLM(false); 
+    // Full and simple HAL prompts need separate conversations.
+    bool changeHalRole = ChatState.HalEnabled && !ChatState.SessionId.EndsWith(
+        ":" + ChatState.HalRoleForRunner, StringComparison.OrdinalIgnoreCase);
+    WebSocketService.QueuedReplayMessage = changeHalRole ? string.Empty : "<|REPLAY_HISTORY|>";
+    if (changeHalRole) await AudioService.ClearQueue();
+    await WebSocketService.ResetLLM(changeHalRole);
     
 }
 

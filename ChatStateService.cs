@@ -44,6 +44,8 @@ namespace NetworkMonitorChat
             set
             {
                 _sessionId = value;
+                var role = value?.Substring(value.LastIndexOf(':') + 1);
+                HalEnabled = role?.ToLowerInvariant() is "hal" or "hal9000" or "halsimple" or "hal9000simple";
                 _ = NotifyStateChanged();
             }
         }
@@ -111,8 +113,10 @@ namespace NetworkMonitorChat
             LLMRunnerType = string.IsNullOrWhiteSpace(storedRunnerType) ? InitRunnerType : storedRunnerType;
             await GetSessionId();
         }
-        // Applies only when creating a conversation; restored history retains its own ID.
-        public string NewConversationRole { get; set; } = "";
+        // Restoring a conversation updates this from its ID; new chats retain the setting.
+        public bool HalEnabled { get; set; }
+        public string HalRoleForRunner => string.Equals(LLMRunnerType, "TestLLM", StringComparison.OrdinalIgnoreCase)
+            ? "hal9000simple" : "hal9000";
 
         public async Task ClearSession()
         {
@@ -139,13 +143,7 @@ namespace NetworkMonitorChat
             }
 
             // Create new session
-            var role = NewConversationRole.ToLowerInvariant();
-            if (role != "" && role != "hal" && role != "hal9000" &&
-                role != "hal9000simple" && role != "standard" && role != "simple")
-            {
-                throw new ArgumentException("Unknown conversation role.");
-            }
-            var newSessionId = Guid.NewGuid().ToString() + (role == "" ? "" : ":" + role);
+            var newSessionId = Guid.NewGuid().ToString() + (HalEnabled ? ":" + HalRoleForRunner : "");
             await StoreNewSessionID(newSessionId);
 
         }
