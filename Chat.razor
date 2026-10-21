@@ -81,10 +81,19 @@
                     </button>*@
 
                     <button @onclick="ToggleHal" disabled="@(ChatState.IsToggleDisabled || !ChatState.IsReady)"
-                            aria-label="Toggle HAL mode" aria-pressed="@(ChatState.HalEnabled ? "true" : "false")"
-                            title="Switch HAL mode and start a new chat">
-                        <span>HAL @(ChatState.HalEnabled ? "On" : "Off")</span>
-                        <span class="tooltip">Switch HAL mode and start a new chat</span>
+                            aria-label="@(ChatState.HalEnabled ? "Disable HAL mode" : "Enable HAL mode")"
+                            aria-pressed="@(ChatState.HalEnabled ? "true" : "false")"
+                            title="HAL 9000 mode changes the assistant's personality and voice and starts a new chat. Use with caution.">
+                        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+                             style="@(ChatState.HalEnabled ? "color: #e0190b; filter: drop-shadow(0 0 3px rgba(255,55,10,0.85)) drop-shadow(0 0 6px rgba(180,0,0,0.55));" : "color: inherit;")">
+                            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+                            <circle cx="12" cy="12" r="5" fill="currentColor" />
+                        </svg>
+                        <span class="tooltip">
+                            HAL 9000 mode: @(ChatState.HalEnabled ? "On" : "Off").
+                            Changes the assistant's personality and voice and starts a new chat.
+                            Use with caution.
+                        </span>
                     </button>
 
                     <button @onclick="ResetChat" class="warning-button" aria-label="Start new chat">
