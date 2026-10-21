@@ -80,6 +80,14 @@
                         }
                     </button>*@
 
+                    <select @bind="ChatState.NewConversationRole" aria-label="New chat role" title="Role for your next new chat">
+                        <option value="">New chat: configured default</option>
+                        <option value="hal9000">New chat: HAL 9000</option>
+                        <option value="hal9000simple">New chat: HAL 9000 simple</option>
+                        <option value="standard">New chat: standard</option>
+                        <option value="simple">New chat: simple</option>
+                    </select>
+
                     <button @onclick="ResetChat" class="warning-button" aria-label="Start new chat">
                         <i class="material-icons">refresh</i>
                         <span class="tooltip">Start New Chat</span>

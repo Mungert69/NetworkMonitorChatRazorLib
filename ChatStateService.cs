@@ -111,6 +111,9 @@ namespace NetworkMonitorChat
             LLMRunnerType = string.IsNullOrWhiteSpace(storedRunnerType) ? InitRunnerType : storedRunnerType;
             await GetSessionId();
         }
+        // Applies only when creating a conversation; restored history retains its own ID.
+        public string NewConversationRole { get; set; } = "";
+
         public async Task ClearSession()
         {
             await TryInvokeVoidAsync("localStorage.removeItem", "sessionId");
@@ -136,7 +139,13 @@ namespace NetworkMonitorChat
             }
 
             // Create new session
-            var newSessionId = Guid.NewGuid().ToString();
+            var role = NewConversationRole.ToLowerInvariant();
+            if (role != "" && role != "hal" && role != "hal9000" &&
+                role != "hal9000simple" && role != "standard" && role != "simple")
+            {
+                throw new ArgumentException("Unknown conversation role.");
+            }
+            var newSessionId = Guid.NewGuid().ToString() + (role == "" ? "" : ":" + role);
             await StoreNewSessionID(newSessionId);
 
         }
