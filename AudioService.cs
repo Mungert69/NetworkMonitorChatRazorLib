@@ -143,7 +143,15 @@ namespace NetworkMonitorChat
             {
                 _playbackCts?.Cancel();
             }
-            await _jsRuntime.InvokeVoidAsync("chatInterop.pauseAudio");
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("chatInterop.pauseAudio");
+            }
+            catch (JSException ex)
+            {
+                Console.Error.WriteLine($"Audio browser operation failed: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task ClearQueue()
@@ -157,7 +165,15 @@ namespace NetworkMonitorChat
             {
                 return;
             }
-            await _jsRuntime.InvokeVoidAsync("chatInterop.pauseAudio");
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("chatInterop.pauseAudio");
+            }
+            catch (JSException ex)
+            {
+                Console.Error.WriteLine($"Audio browser operation failed: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<bool> StartRecording(string recordingSessionId)
@@ -166,8 +182,16 @@ namespace NetworkMonitorChat
             {
                 return false;
             }
-            return await _jsRuntime.InvokeAsync<bool>(
-                "chatInterop.startRecording", new object[] { recordingSessionId });
+            try
+            {
+                return await _jsRuntime.InvokeAsync<bool>(
+                    "chatInterop.startRecording", new object[] { recordingSessionId });
+            }
+            catch (JSException ex)
+            {
+                Console.Error.WriteLine($"Audio browser operation failed: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<byte[]> StopRecording(string recordingSessionId)

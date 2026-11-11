@@ -337,7 +337,15 @@ private async Task DismissNotification(string id)
     {
         if (ChatState.AutoScrollEnabled)
         {
-            await JSRuntime.InvokeVoidAsync("chatInterop.scrollToBottom", outputContainerRef);
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("chatInterop.scrollToBottom", outputContainerRef);
+            }
+            catch (JSException ex)
+            {
+                Console.Error.WriteLine($"Assistant browser operation failed: {ex.Message}");
+                throw;
+            }
         }
     }
 
@@ -379,7 +387,15 @@ private async Task DismissNotification(string id)
 
     private async Task ShowAlert(string message)
     {
-        await JSRuntime.InvokeVoidAsync("alert", message);
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("alert", message);
+        }
+        catch (JSException ex)
+        {
+            Console.Error.WriteLine($"Assistant browser operation failed: {ex.Message}");
+            throw;
+        }
     }
 
     private async Task SendTranscription(string transcription)
@@ -404,7 +420,7 @@ private async Task DismissNotification(string id)
         {
             Console.WriteLine($"Error starting recording: {ex.Message}");
             IsRecording = false;
-            await JSRuntime.InvokeVoidAsync("console.error", "Recording error:", ex.Message);
+            Console.Error.WriteLine($"Recording error: {ex.Message}");
         }
     }
 
@@ -425,7 +441,7 @@ private async Task DismissNotification(string id)
         catch (Exception ex)
         {
             Console.WriteLine($"Error stopping recording: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("console.error", "Stop recording error:", ex.Message);
+            Console.Error.WriteLine($"Stop recording error: {ex.Message}");
         }
         recordingSessionId = Guid.NewGuid().ToString();
     }
@@ -547,7 +563,15 @@ private async Task DismissNotification(string id)
 
     private async Task SaveFeedback()
     {
-        await JSRuntime.InvokeVoidAsync("downloadFile", "AssistantOutput.txt", ChatState.LLMFeedback);
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("downloadFile", "AssistantOutput.txt", ChatState.LLMFeedback);
+        }
+        catch (JSException ex)
+        {
+            Console.Error.WriteLine($"Assistant browser operation failed: {ex.Message}");
+            throw;
+        }
     }
 
     private async Task SendMessage()
